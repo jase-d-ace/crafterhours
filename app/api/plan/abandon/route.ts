@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { mockAbandonSession, mockGetSession } from '@/lib/mocks/plan'
+import { logger, serializeError } from '@/lib/logger'
 
 export async function POST(request: Request) {
   let body: { sessionId?: string }
@@ -37,6 +38,18 @@ export async function POST(request: Request) {
     )
   }
 
-  const result = mockAbandonSession(sessionId)
-  return NextResponse.json(result)
+  try {
+    const result = mockAbandonSession(sessionId)
+    return NextResponse.json(result)
+  } catch (e) {
+    logger.error('api/plan/abandon', 'Failed to abandon session', {
+      code: 'INTERNAL_ERROR',
+      sessionId,
+      ...serializeError(e),
+    })
+    return NextResponse.json(
+      { error: 'Failed to abandon session', code: 'INTERNAL_ERROR' },
+      { status: 500 }
+    )
+  }
 }

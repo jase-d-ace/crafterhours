@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { mockSendMessage, mockGetSession } from '@/lib/mocks/plan'
+import { logger, serializeError } from '@/lib/logger'
 
 export async function POST(request: Request) {
   let body: { sessionId?: string; message?: string }
@@ -21,8 +22,22 @@ export async function POST(request: Request) {
     )
   }
 
-  // TODO: replace with real implementation
-  const session = mockGetSession(sessionId)
+  let session
+  try {
+    // TODO: replace with real implementation
+    session = mockGetSession(sessionId)
+  } catch (e) {
+    logger.error('api/plan/message', 'Failed to look up session', {
+      code: 'INTERNAL_ERROR',
+      sessionId,
+      ...serializeError(e),
+    })
+    return NextResponse.json(
+      { error: 'Failed to look up session', code: 'INTERNAL_ERROR' },
+      { status: 500 }
+    )
+  }
+
   if (!session) {
     return NextResponse.json(
       { error: 'Session not found', code: 'SESSION_NOT_FOUND' },
@@ -48,6 +63,11 @@ export async function POST(request: Request) {
             controller.enqueue(encoder.encode(chunk))
           }
         } catch (error) {
+          logger.error('api/plan/message', 'Stream error', {
+            code: 'STREAM_ERROR',
+            sessionId,
+            ...serializeError(error),
+          })
           const errorMessage = error instanceof Error ? error.message : 'Stream error'
           controller.error(new Error(errorMessage))
         } finally {

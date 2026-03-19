@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { mockConfirmPlan, mockGetSession } from '@/lib/mocks/plan'
+import { logger, serializeError } from '@/lib/logger'
 import type { SessionPlan, PlanItem } from '@/lib/types'
 
 function isValidPlanItem(item: unknown): item is PlanItem {
@@ -71,6 +72,18 @@ export async function POST(request: Request) {
 
   console.log(`TODO: write calendar block for ${sessionPlan.hobbyId} at ${sessionPlan.duration}min`)
 
-  const result = mockConfirmPlan(sessionId, sessionPlan)
-  return NextResponse.json(result)
+  try {
+    const result = mockConfirmPlan(sessionId, sessionPlan)
+    return NextResponse.json(result)
+  } catch (e) {
+    logger.error('api/plan/confirm', 'Failed to confirm plan', {
+      code: 'INTERNAL_ERROR',
+      sessionId,
+      ...serializeError(e),
+    })
+    return NextResponse.json(
+      { error: 'Failed to confirm plan', code: 'INTERNAL_ERROR' },
+      { status: 500 }
+    )
+  }
 }
