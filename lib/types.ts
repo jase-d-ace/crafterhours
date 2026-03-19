@@ -45,3 +45,12 @@ export type Message = {
   role: 'user' | 'assistant'
   content: string
 }
+
+export type SessionPhase =
+  | 'idle'
+  | 'recommending'
+  | 'recommended'
+  | 'redirecting'
+  | 'planning'
+  | 'plan_presented'
+  | 'confirmed'
