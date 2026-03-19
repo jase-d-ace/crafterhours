@@ -6,6 +6,7 @@ import type { Message } from '@/lib/types'
 export function useStreamingChat(sessionId: string | null) {
   const [messages, setMessages] = useState<Message[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const streamAbortRef = useRef<AbortController | null>(null)
 
   const addAssistantMessage = useCallback((content: string) => {
@@ -58,6 +59,7 @@ export function useStreamingChat(sessionId: string | null) {
       } catch (e) {
         if ((e as Error).name !== 'AbortError') {
           console.error('Streaming error:', e)
+          setError('Lost connection during planning. Try sending your message again.')
         }
       } finally {
         setIsStreaming(false)
@@ -67,13 +69,16 @@ export function useStreamingChat(sessionId: string | null) {
     [sessionId, isStreaming]
   )
 
+  const clearError = useCallback(() => setError(null), [])
+
   const reset = useCallback(() => {
     if (streamAbortRef.current) {
       streamAbortRef.current.abort()
     }
     setMessages([])
     setIsStreaming(false)
+    setError(null)
   }, [])
 
-  return { messages, isStreaming, sendMessage, addAssistantMessage, reset, setMessages }
+  return { messages, isStreaming, error, sendMessage, addAssistantMessage, clearError, reset, setMessages }
 }

@@ -58,6 +58,7 @@ export default function Home() {
     sessionPlan,
     hasEditedPlan,
     alternativeHobbies,
+    error: sessionError,
     confirmRecommendation,
     redirectToAlternatives,
     selectAlternativeHobby,
@@ -65,7 +66,10 @@ export default function Home() {
     presentPlan,
     approvePlan,
     requestPlanEdit,
+    clearError: clearSessionError,
   } = session
+
+  const activeError = sessionError || chat.error
 
   // Start planning when phase transitions to 'planning'
   useEffect(() => {
@@ -110,6 +114,21 @@ export default function Home() {
   return (
     <main className="flex flex-col min-h-[calc(100vh-3.5rem)]">
       <div className="flex-1 w-full max-w-[640px] mx-auto px-4 py-6 flex flex-col">
+        {activeError && (
+          <div className="mb-4 rounded-lg bg-red-900/40 border border-red-800/60 px-4 py-3 flex items-start gap-3">
+            <p className="text-sm text-red-200 flex-1">{activeError}</p>
+            <button
+              onClick={() => {
+                clearSessionError()
+                chat.clearError()
+              }}
+              className="shrink-0 text-red-400 hover:text-red-200 text-sm font-medium"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {/* idle / recommending */}
         {(phase === 'idle' || phase === 'recommending') && (
           <div className="flex-1 flex items-center">

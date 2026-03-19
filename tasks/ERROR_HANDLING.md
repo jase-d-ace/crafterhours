@@ -1,0 +1,2 @@
+## Goal
+Add error logging to promote visibility at all levels of the stack. All API requests should have some sort of error handling that not only logs in the console, but also is stored somewhere for review later.

@@ -13,6 +13,7 @@ export function useSession() {
   const [sessionPlan, setSessionPlan] = useState<SessionPlan | null>(null)
   const [hasRedirected, setHasRedirected] = useState(false)
   const [hasEditedPlan, setHasEditedPlan] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Auto-fetch recommendation on mount
   useEffect(() => {
@@ -25,6 +26,7 @@ export function useSession() {
         setPhase('recommended')
       } catch (e) {
         console.error('Failed to fetch recommendation:', e)
+        setError("Couldn't load tonight's recommendation. Try refreshing.")
         setPhase('idle')
       }
     }
@@ -61,6 +63,7 @@ export function useSession() {
         return data.openingMessage as string
       } catch (e) {
         console.error('Failed to start planning:', e)
+        setError('Failed to start planning session. Try again.')
         return null
       }
     },
@@ -83,8 +86,11 @@ export function useSession() {
       setPhase('confirmed')
     } catch (e) {
       console.error('Failed to confirm plan:', e)
+      setError('Failed to confirm plan. Try again.')
     }
   }, [sessionId, sessionPlan])
+
+  const clearError = useCallback(() => setError(null), [])
 
   const requestPlanEdit = useCallback(() => {
     if (hasEditedPlan) return
@@ -106,6 +112,7 @@ export function useSession() {
     sessionPlan,
     hasRedirected,
     hasEditedPlan,
+    error,
     alternativeHobbies,
     confirmRecommendation,
     redirectToAlternatives,
@@ -114,5 +121,6 @@ export function useSession() {
     presentPlan,
     approvePlan,
     requestPlanEdit,
+    clearError,
   }
 }
