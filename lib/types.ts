@@ -45,3 +45,13 @@ export type Message = {
   role: 'user' | 'assistant'
   content: string
 }
+
+export type SessionState = {
+  id: string
+  hobbyId: string
+  status: 'planning' | 'confirmed' | 'abandoned'
+  messages: Message[]
+  sessionPlan: SessionPlan | null
+  createdAt: string
+  updatedAt: string
+}
