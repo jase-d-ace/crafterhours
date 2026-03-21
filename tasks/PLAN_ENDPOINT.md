@@ -24,7 +24,7 @@ Request body:
 ```
 
 Behavior:
-- Look up hobby from hardcoded hobby data (not SQLite yet)
+- Look up hobby via `getHobbyById(hobbyId)` from `lib/db.ts`
 - Create a new session_state row in SQLite with:
   - status: 'planning'
   - hobbyId
@@ -315,6 +315,14 @@ these two functions:
 
 Keep `getRecommendation` and `generateArtifact` stubs as-is.
 
+Initialize the Anthropic client at module level:
+```typescript
+import Anthropic from '@anthropic-ai/sdk'
+const anthropic = new Anthropic()
+```
+The SDK reads `ANTHROPIC_API_KEY` from the environment
+automatically — do not pass it explicitly.
+
 Use model `claude-sonnet-4-6` for all Claude API calls.
 Use `max_tokens: 1024`.
 Use `crypto.randomUUID()` for session ID generation.
@@ -337,7 +345,8 @@ Use `crypto.randomUUID()` for session ID generation.
   updateSessionStatus, updateSessionPlan, abandonActiveSessions
   (abandonActiveSessions must update ALL rows where
   status = 'planning' to 'abandoned', enforcing the
-  one-active-session invariant)
+  one-active-session invariant).
+  Database connection and `getHobbyById` already exist.
 
 ### Do NOT touch
 - `lib/calendar.ts` — calendar write is stubbed in confirm,
@@ -381,20 +390,11 @@ return new Response(
 Save the complete assembled response to SQLite only after the
 stream closes — not during.
 
-### Session state shape in SQLite
-The session_state table (defined in migration
-003_alter_session_state.sql) stores:
-- id: TEXT PRIMARY KEY (use `crypto.randomUUID()`)
-- hobby_id: TEXT — references hobbies(id)
-- status: TEXT — 'planning' | 'confirmed' | 'abandoned'
-- messages: TEXT — JSON stringified Message[]
-- session_plan: TEXT — JSON stringified SessionPlan or NULL
-- created_at: TEXT — ISO datetime
-- updated_at: TEXT — ISO datetime
-
-Column names are snake_case in SQLite. The lib/db.ts CRUD
-functions should map between snake_case columns and camelCase
-TypeScript types.
+### Session state columns (reference)
+Table `session_state` — migration already applied.
+`id`, `hobby_id`, `status`, `messages`, `session_plan`,
+`created_at`, `updated_at`. Snake_case in SQLite, map to
+camelCase in the lib/db.ts CRUD functions.
 
 ### Jest tests — one per endpoint
 Write a test file at `app/api/plan/__tests__/plan.test.ts`.

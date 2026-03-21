@@ -25,48 +25,6 @@ smooth animated transition to a "session active" holding state.
 - Real Claude API calls or MCP integrations
 - Real database queries
 
----
-
-### Mock data strategy
-This task is self-contained — no dependency on PLAN_ENDPOINT.
-All API routes use mock implementations so the UI can be
-developed and tested independently.
-
-Create a `lib/mocks/` directory:
-
-`lib/mocks/recommend.ts`
-- Returns a hardcoded `Recommendation` using `getDefaultHobbies()`
-  from `lib/hobbies.ts`
-- Static reasoning string, confidence of 0.85
-- Includes sample calendarContext and githubContext strings
-- `// TODO: replace with real implementation`
-
-`lib/mocks/plan.ts`
-- `mockStartSession(hobbyId)` — returns a canned opening message
-  per hobby (guitar asks what they want to feel tonight, writing
-  asks what form feels right, building asks what they want to
-  have shipped)
-- `mockSendMessage(sessionId, message, messageCount)` — returns
-  a delayed canned response simulating streaming. On the 2nd–3rd
-  exchange, the response includes a SessionPlan JSON code block
-  to trigger the plan_presented state
-- `mockConfirmPlan(sessionId, plan)` — returns confirmed status
-- `// TODO: replace with real implementation` on all functions
-
-Wire these into the API routes:
-- `app/api/recommend/route.ts` → uses mock recommend
-- `app/api/plan/start/route.ts` → uses mock plan start
-- `app/api/plan/message/route.ts` → uses mock message (simulate
-  streaming by writing tokens with small delays)
-- `app/api/plan/confirm/route.ts` → uses mock confirm
-- `app/api/plan/session/route.ts` → returns stored state
-- `app/api/plan/abandon/route.ts` → updates status
-
-The API contract shapes must match PLAN_ENDPOINT.md exactly so
-swapping in real implementations requires no frontend changes.
-
----
-
 ### Design system
 
 #### Base colors
@@ -231,7 +189,6 @@ The mock plan endpoint's final response (after 2–3 exchanges)
 should include a fenced JSON code block with the SessionPlan
 structure:
 
-````
 ```json
 {
   "hobbyId": "hobby_guitar",
@@ -240,7 +197,6 @@ structure:
   "structure": [...]
 }
 ```
-````
 
 The frontend:
 1. Checks the last assistant message for a fenced ```json block
