@@ -282,6 +282,14 @@ Response: `{ sessionId, status: 'abandoned' }`
 - `components/HobbyCard/HobbyCard.tsx` — full implementation
 - `lib/types.ts` — add `SessionPhase` type
 
+### React patterns
+- Avoid `useEffect` where possible. Prefer event handlers for
+  side effects triggered by user actions (button clicks, form
+  submits, message sends). Prefer `useMemo`/computed values over
+  `useEffect` + `setState` for derived state. Use `useEffect`
+  only for true synchronization needs (e.g. auto-scroll on new
+  messages, initial data fetch on mount).
+
 ### Do NOT touch
 - `lib/claude.ts` — prompt templates (per CLAUDE.md)
 - `lib/github.ts`, `lib/calendar.ts` — MCP clients (per CLAUDE.md)
