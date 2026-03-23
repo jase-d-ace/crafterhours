@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
+import { getMockRecommendation } from '@/lib/mocks/recommend'
 
 export async function GET() {
-  return NextResponse.json(
-    { error: 'Not implemented', code: 'NOT_IMPLEMENTED' },
-    { status: 501 }
-  )
+  const data = getMockRecommendation()
+  return NextResponse.json(data)
 }
