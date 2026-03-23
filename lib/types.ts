@@ -46,6 +46,15 @@ export type Message = {
   content: string
 }
 
+export type SessionPhase =
+  | 'idle'
+  | 'recommending'
+  | 'recommended'
+  | 'redirecting'
+  | 'planning'
+  | 'plan_presented'
+  | 'confirmed'
+
 export type SessionState = {
   id: string
   hobbyId: string
