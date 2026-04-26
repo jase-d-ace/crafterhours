@@ -45,6 +45,18 @@ export type Message = {
   content: string
 }
 
+export type Session = {
+  id: string
+  hobbyId: string
+  duration: number
+  notes: string
+  artifactType: Artifact['type']
+  createdAt: string
+}
+
+export type SaveSessionInput = Omit<Session, 'id' | 'createdAt'>
+export type SaveArtifactInput = Omit<Artifact, 'id' | 'createdAt'>
+
 export type SessionPhase =
   | 'idle'
   | 'recommending'
@@ -52,12 +64,15 @@ export type SessionPhase =
   | 'redirecting'
   | 'planning'
   | 'plan_presented'
-  | 'confirmed'
+  | 'session_active'
+  | 'logging'
+  | 'artifact_preview'
+  | 'completed'
 
 export type SessionState = {
   id: string
   hobbyId: string
-  status: 'planning' | 'confirmed' | 'abandoned'
+  status: 'planning' | 'confirmed' | 'abandoned' | 'completed'
   messages: Message[]
   sessionPlan: SessionPlan | null
   createdAt: string

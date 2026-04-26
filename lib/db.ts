@@ -1,28 +1,12 @@
 import Database from 'better-sqlite3'
 import path from 'path'
-import type { Hobby, Artifact, Message, SessionPlan, SessionState } from './types'
+import type { Hobby, Artifact, Message, SessionPlan, SessionState, Session, SaveSessionInput, SaveArtifactInput } from './types'
 
 const DATABASE_PATH = process.env.DATABASE_PATH || path.join(process.cwd(), 'crafterhours.db')
 const db = new Database(DATABASE_PATH)
 
 db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
-
-class NotImplementedError extends Error {
-  constructor(method: string) {
-    super(`${method} is not yet implemented`)
-    this.name = 'NotImplementedError'
-  }
-}
-
-export type Session = {
-  id: string
-  hobbyId: string
-  duration: number
-  notes: string
-  artifactType: Artifact['type']
-  createdAt: string
-}
 
 function rowToHobby(row: any): Hobby {
   return {
@@ -47,16 +31,42 @@ export function getHobbyById(hobbyId: string): Hobby | null {
   return rowToHobby(row)
 }
 
-export function getRecentSessions(): Session[] {
-  throw new NotImplementedError('getRecentSessions')
+function rowToSession(row: any): Session {
+  return {
+    id: row.id,
+    hobbyId: row.hobby_id,
+    duration: row.duration,
+    notes: row.notes,
+    artifactType: row.artifact_type as Artifact['type'],
+    createdAt: row.created_at,
+  }
 }
 
-export function saveSession(_session: Omit<Session, 'id' | 'createdAt'>): Session {
-  throw new NotImplementedError('saveSession')
+export function getRecentSessions(limit = 10): Session[] {
+  const rows = db.prepare(
+    'SELECT * FROM sessions ORDER BY created_at DESC LIMIT ?'
+  ).all(limit)
+  return rows.map(rowToSession)
 }
 
-export function saveArtifact(_artifact: Omit<Artifact, 'id' | 'createdAt'>): Artifact {
-  throw new NotImplementedError('saveArtifact')
+export function saveSession(data: SaveSessionInput): Session {
+  const id = crypto.randomUUID()
+  const now = new Date().toISOString()
+  db.prepare(
+    `INSERT INTO sessions (id, hobby_id, duration, notes, artifact_type, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(id, data.hobbyId, data.duration, data.notes, data.artifactType, now)
+  return { id, ...data, createdAt: now }
+}
+
+export function saveArtifact(data: SaveArtifactInput): Artifact {
+  const id = crypto.randomUUID()
+  const now = new Date().toISOString()
+  db.prepare(
+    `INSERT INTO artifacts (id, session_id, hobby_id, type, content, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(id, data.sessionId, data.hobbyId, data.type, data.content, now)
+  return { id, ...data, createdAt: now }
 }
 
 // --- session_state CRUD ---
@@ -113,5 +123,5 @@ export function abandonActiveSessions(): void {
   ).run()
 }
 
-export { type Hobby, type Artifact } from './types'
+export { type Hobby, type Artifact, type Session, type SaveSessionInput, type SaveArtifactInput } from './types'
 export { type Recommendation, type SessionPlan, type PlanItem, type SessionState } from './types'
