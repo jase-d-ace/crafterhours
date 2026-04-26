@@ -43,12 +43,23 @@ export function useStreamingChat() {
           const chunk = decoder.decode(value, { stream: true })
           fullResponse += chunk
 
+          // Hide the JSON block even as it streams in — strip from the opening
+          // fence to the end of what's accumulated so far
+          const displayContent = fullResponse.replace(/```json[\s\S]*/, '').trim()
+
           setMessages((prev) => {
             const updated = [...prev]
-            updated[updated.length - 1] = {
-              role: 'assistant',
-              content: fullResponse,
-            }
+            updated[updated.length - 1] = { role: 'assistant', content: displayContent }
+            return updated
+          })
+        }
+
+        // Strip JSON blocks from the displayed message after streaming completes
+        const displayContent = fullResponse.replace(/```json[\s\S]*?```/g, '').trim()
+        if (displayContent !== fullResponse) {
+          setMessages((prev) => {
+            const updated = [...prev]
+            updated[updated.length - 1] = { role: 'assistant', content: displayContent }
             return updated
           })
         }
