@@ -1,3 +1,49 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  .dark body {
+    @apply bg-craft-gray-950 text-craft-gray-50;
+  }
+
+  body {
+    @apply bg-craft-gray-50 text-craft-gray-900;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-skeleton {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes typing-dot {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-4px); }
+}
+
+.animate-fade-in {
+  animation: fade-in 300ms ease-out both;
+}
+
+.animate-slide-up {
+  animation: slide-up 300ms ease-out both;
+}
+
+.animate-pulse-skeleton {
+  animation: pulse-skeleton 1.5s ease-in-out infinite;
+}
+
+.animate-typing-dot {
+  animation: typing-dot 1.2s ease-in-out infinite;
+}

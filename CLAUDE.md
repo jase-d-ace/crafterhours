@@ -112,10 +112,9 @@ export type SessionPlan = {
 }
 
 export type PlanItem = {
-  title: string
-  description: string
-  durationMinutes: number
-  type: 'warmup' | 'main' | 'cooldown' | 'reflection'
+  goal: string
+  duration: number
+  phase: 'warmup' | 'main' | 'cooldown' | 'reflection'
 }
 ```
 

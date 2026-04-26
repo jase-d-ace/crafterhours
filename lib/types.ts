@@ -26,10 +26,9 @@ export type SessionPlan = {
 }
 
 export type PlanItem = {
-  title: string
-  description: string
-  durationMinutes: number
-  type: 'warmup' | 'main' | 'cooldown' | 'reflection'
+  goal: string
+  duration: number
+  phase: 'warmup' | 'main' | 'cooldown' | 'reflection'
 }
 
 export type Artifact = {
@@ -44,4 +43,23 @@ export type Artifact = {
 export type Message = {
   role: 'user' | 'assistant'
   content: string
+}
+
+export type SessionPhase =
+  | 'idle'
+  | 'recommending'
+  | 'recommended'
+  | 'redirecting'
+  | 'planning'
+  | 'plan_presented'
+  | 'confirmed'
+
+export type SessionState = {
+  id: string
+  hobbyId: string
+  status: 'planning' | 'confirmed' | 'abandoned'
+  messages: Message[]
+  sessionPlan: SessionPlan | null
+  createdAt: string
+  updatedAt: string
 }
