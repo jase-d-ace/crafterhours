@@ -117,7 +117,7 @@ export default function HomePage() {
               </span>
             </div>
           )}
-          <div className="flex-1 min-h-0 overflow-y-auto space-y-4">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="opacity-50 space-y-3">
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'assistant' ? 'justify-start' : 'justify-end'}`}>
@@ -131,6 +131,8 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
+          </div>
+          <div className="shrink-0 pt-4 animate-slide-up">
             <SessionPlanView
               plan={sessionPlan}
               onApprove={approvePlan}
@@ -143,9 +145,9 @@ export default function HomePage() {
 
       {/* Confirmed */}
       {phase === 'confirmed' && sessionPlan && (
-        <div className="flex flex-col items-center justify-center h-full gap-6 animate-fade-in">
+        <div className="flex flex-col items-center justify-center h-full gap-6">
           {activeHobby && (
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-2 animate-slide-up">
               <span className="text-5xl block">{activeHobby.emoji}</span>
               <h2 className="text-xl font-semibold text-craft-gray-50">
                 Session in progress
@@ -158,15 +160,18 @@ export default function HomePage() {
               </p>
             </div>
           )}
-          <SessionPlanView
-            plan={sessionPlan}
-            onApprove={() => {}}
-            onRequestEdit={() => {}}
-            editable={false}
-          />
+          <div className="animate-slide-up w-full" style={{ animationDelay: '150ms' }}>
+            <SessionPlanView
+              plan={sessionPlan}
+              onApprove={() => {}}
+              onRequestEdit={() => {}}
+              editable={false}
+            />
+          </div>
           <button
             disabled
-            className="rounded-lg bg-craft-gray-800 px-6 py-2.5 text-sm font-medium text-craft-gray-500 cursor-not-allowed"
+            className="rounded-lg bg-craft-gray-800 px-6 py-2.5 text-sm font-medium text-craft-gray-500 cursor-not-allowed animate-fade-in"
+            style={{ animationDelay: '300ms' }}
           >
             Finish session
           </button>

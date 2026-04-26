@@ -24,7 +24,7 @@ export default function SessionPlan({
   editable,
 }: SessionPlanProps) {
   return (
-    <div className="animate-slide-up rounded-xl bg-craft-gray-900 border border-craft-gray-800 p-5 space-y-4">
+    <div className="rounded-xl bg-craft-gray-900 border border-craft-gray-800 p-5 space-y-4">
       <div className="space-y-1">
         <h3 className="text-sm font-medium text-craft-gray-400 uppercase tracking-wider">
           Session plan
