@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import type { Recommendation, SessionPlan, Artifact, Message } from './types'
+import type { Recommendation, SessionPlan, Message } from './types'
 
 const anthropic = new Anthropic()
 
@@ -108,6 +108,45 @@ export function streamPlanningResponse(messages: Message[], hobbyId: string) {
   })
 }
 
+// --- Artifact generation ---
+
+const GUITAR_ARTIFACT_PROMPT = `You are writing a guitar practice log entry based on what happened in tonight's session.
+
+Write a concise, honest markdown practice log. Include: what was practiced (be specific — scales, progressions, songs), what clicked, what still needs work, and one concrete thing to focus on next session.
+
+Format as short prose paragraphs. No hollow praise, no coaching filler. Talk like a musician writing for themselves.`
+
+const WRITING_ARTIFACT_PROMPT = `You are writing a journal entry documenting tonight's writing session.
+
+Based on the session plan and the user's notes, write a markdown entry that captures what was written or explored. Include the actual writing produced if described, honest reflections on the process, and what to carry into the next session.
+
+Preserve the user's voice. No coaching language — just honest documentation.`
+
+const BUILDING_ARTIFACT_PROMPT = `You are writing a coding session summary documenting tonight's building session.
+
+Based on the session plan and the user's notes, write a markdown summary covering: what was built or attempted, key decisions made, any blockers hit, and what's left for next session.
+
+Be specific about code, features, or approaches. Engineering tone — no filler. Format with clear markdown sections.`
+
+const ARTIFACT_SYSTEM_PROMPTS: Record<string, string> = {
+  hobby_guitar: GUITAR_ARTIFACT_PROMPT,
+  hobby_writing: WRITING_ARTIFACT_PROMPT,
+  hobby_building: BUILDING_ARTIFACT_PROMPT,
+}
+
+export function streamArtifactGeneration(notes: string, plan: SessionPlan, hobbyId: string) {
+  const systemPrompt = ARTIFACT_SYSTEM_PROMPTS[hobbyId]
+  if (!systemPrompt) throw new Error(`No artifact prompt for hobby: ${hobbyId}`)
+
+  const userMessage = `Session plan:\n${JSON.stringify(plan, null, 2)}\n\nHow the session went:\n${notes}`
+  return anthropic.messages.stream({
+    model: MODEL,
+    max_tokens: MAX_TOKENS,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userMessage }],
+  })
+}
+
 // --- Stubs for other features ---
 
 class NotImplementedError extends Error {
@@ -119,12 +158,4 @@ class NotImplementedError extends Error {
 
 export function getRecommendation(): Promise<Recommendation> {
   throw new NotImplementedError('getRecommendation')
-}
-
-export function generateArtifact(
-  _sessionLog: string,
-  _plan: SessionPlan,
-  _artifactType: Artifact['type']
-): Promise<string> {
-  throw new NotImplementedError('generateArtifact')
 }
