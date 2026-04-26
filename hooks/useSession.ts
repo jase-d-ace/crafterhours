@@ -6,10 +6,17 @@ import type {
   Recommendation,
   Hobby,
   SessionPlan,
+  Artifact,
 } from '@/lib/types'
 import { useStreamingChat } from './useStreamingChat'
 
 const VALID_PHASES = new Set(['warmup', 'main', 'cooldown', 'reflection'])
+
+const ARTIFACT_TYPES: Record<string, Artifact['type']> = {
+  hobby_guitar: 'practice_log',
+  hobby_writing: 'journal',
+  hobby_building: 'coding_summary',
+}
 
 function extractSessionPlan(text: string): SessionPlan | null {
   const match = text.match(/```json\s*([\s\S]*?)```/)
@@ -48,10 +55,13 @@ export function useSession() {
   const [sessionPlan, setSessionPlan] = useState<SessionPlan | null>(null)
   const [activeHobby, setActiveHobby] = useState<Hobby | null>(null)
   const [editCount, setEditCount] = useState(0)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [dbSessionId, setDbSessionId] = useState<string | null>(null)
+  const [artifactDraft, setArtifactDraft] = useState<string | null>(null)
 
   const { messages, isStreaming, sendMessage, setInitialMessages } = useStreamingChat()
 
-  // Single useEffect: fetch recommendation on mount
+  // Fetch recommendation on mount
   useEffect(() => {
     let cancelled = false
     setPhase('recommending')
@@ -64,15 +74,19 @@ export function useSession() {
         setAllHobbies(data.allHobbies)
         setPhase('recommended')
       })
-      .catch(() => {
-        // Recommendation failed — stay in recommending with error state
-        // For now, silently fail since this is mock data
-      })
+      .catch(() => {})
 
     return () => {
       cancelled = true
     }
   }, [])
+
+  // Timer: count up while session is active
+  useEffect(() => {
+    if (phase !== 'session_active') return
+    const interval = setInterval(() => setElapsedSeconds((s) => s + 1), 1000)
+    return () => clearInterval(interval)
+  }, [phase])
 
   const startPlanning = useCallback(
     async (hobby: Hobby) => {
@@ -132,7 +146,8 @@ export function useSession() {
       body: JSON.stringify({ sessionId, sessionPlan }),
     })
 
-    setPhase('confirmed')
+    setElapsedSeconds(0)
+    setPhase('session_active')
   }, [sessionId, sessionPlan])
 
   const requestEdit = useCallback(() => {
@@ -140,6 +155,84 @@ export function useSession() {
     setEditCount((c) => c + 1)
     setPhase('planning')
   }, [editCount])
+
+  const returnFromSession = useCallback(() => {
+    setInitialMessages([
+      ...messages,
+      { role: 'assistant', content: "You're back. How did it go — what happened tonight?" },
+    ])
+    setPhase('logging')
+  }, [messages, setInitialMessages])
+
+  const logSession = useCallback(
+    async (notes: string) => {
+      if (!sessionId || !sessionPlan || !activeHobby) return
+
+      const artifactType = ARTIFACT_TYPES[activeHobby.id] ?? 'journal'
+
+      // Save the completed session to the sessions table
+      const sessionRes = await fetch('/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          actualDuration: Math.max(1, Math.round(elapsedSeconds / 60)),
+          notes,
+          artifactType,
+        }),
+      })
+      const { session } = await sessionRes.json()
+      setDbSessionId(session.id)
+
+      // Stream the artifact
+      setArtifactDraft('')
+      setPhase('artifact_preview')
+
+      const artifactRes = await fetch('/api/artifact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, notes, hobbyId: activeHobby.id }),
+      })
+
+      if (!artifactRes.body) return
+      const reader = artifactRes.body.getReader()
+      const decoder = new TextDecoder()
+      let draft = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        draft += decoder.decode(value, { stream: true })
+        setArtifactDraft(draft)
+      }
+    },
+    [sessionId, sessionPlan, activeHobby, elapsedSeconds]
+  )
+
+  const handleLoggingMessage = useCallback(
+    async (text: string) => {
+      // Add user message to chat then kick off the session save + artifact generation
+      setInitialMessages([...messages, { role: 'user', content: text }])
+      await logSession(text)
+    },
+    [messages, setInitialMessages, logSession]
+  )
+
+  const confirmSaveArtifact = useCallback(
+    async (content: string) => {
+      if (!dbSessionId || !activeHobby) return
+
+      const type = ARTIFACT_TYPES[activeHobby.id] ?? 'journal'
+      await fetch('/api/artifact/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dbSessionId, hobbyId: activeHobby.id, type, content }),
+      })
+
+      setPhase('completed')
+    },
+    [dbSessionId, activeHobby]
+  )
 
   const abandonSession = useCallback(async () => {
     if (!sessionId) return
@@ -150,7 +243,6 @@ export function useSession() {
     })
   }, [sessionId])
 
-  // Alternatives: all hobbies except the recommended one
   const alternatives = recommendation
     ? allHobbies.filter((h) => h.id !== recommendation.hobby.id)
     : []
@@ -165,12 +257,17 @@ export function useSession() {
     messages,
     isStreaming,
     editCount,
+    elapsedSeconds,
+    artifactDraft,
     confirmHobby,
     redirectHobby,
     selectAlternative,
     handleSendMessage,
+    handleLoggingMessage,
     approvePlan,
     requestEdit,
+    returnFromSession,
+    confirmSaveArtifact,
     abandonSession,
   }
 }
