@@ -2,6 +2,13 @@
 
 import type { SessionPlan as SessionPlanType, PlanItem } from '@/lib/types'
 
+const phaseBadgeStyles: Record<PlanItem['phase'], string> = {
+  warmup: 'bg-amber-900/40 text-amber-300',
+  main: 'bg-craft-blue-950 text-craft-blue-300',
+  cooldown: 'bg-emerald-900/40 text-emerald-300',
+  reflection: 'bg-purple-900/40 text-purple-300',
+}
+
 type SessionPlanProps = {
   plan: SessionPlanType
   onApprove: () => void
@@ -9,12 +16,6 @@ type SessionPlanProps = {
   editable: boolean
 }
 
-const typeBadgeStyles: Record<PlanItem['type'], string> = {
-  warmup: 'bg-amber-900/40 text-amber-300',
-  main: 'bg-craft-blue-950 text-craft-blue-300',
-  cooldown: 'bg-emerald-900/40 text-emerald-300',
-  reflection: 'bg-purple-900/40 text-purple-300',
-}
 
 export default function SessionPlan({
   plan,
@@ -40,22 +41,17 @@ export default function SessionPlan({
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <span
-                  className={`text-xs font-medium px-2 py-0.5 rounded-md ${typeBadgeStyles[item.type]}`}
-                >
-                  {item.type}
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${phaseBadgeStyles[item.phase]}`}>
+                  {item.phase}
                 </span>
                 <span className="text-sm font-medium text-craft-gray-100">
-                  {item.title}
+                  {item.goal}
                 </span>
               </div>
               <span className="text-xs text-craft-gray-500 shrink-0">
-                {item.durationMinutes}m
+                {item.duration}m
               </span>
             </div>
-            <p className="text-xs text-craft-gray-400 leading-relaxed">
-              {item.description}
-            </p>
           </div>
         ))}
       </div>

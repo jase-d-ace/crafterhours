@@ -9,6 +9,8 @@ import type {
 } from '@/lib/types'
 import { useStreamingChat } from './useStreamingChat'
 
+const VALID_PHASES = new Set(['warmup', 'main', 'cooldown', 'reflection'])
+
 function extractSessionPlan(text: string): SessionPlan | null {
   const match = text.match(/```json\s*([\s\S]*?)```/)
   if (!match) return null
@@ -20,7 +22,15 @@ function extractSessionPlan(text: string): SessionPlan | null {
       typeof parsed.duration === 'number' &&
       typeof parsed.intention === 'string' &&
       Array.isArray(parsed.structure) &&
-      parsed.structure.length > 0
+      parsed.structure.length > 0 &&
+      parsed.structure.every(
+        (item: unknown) =>
+          item !== null &&
+          typeof item === 'object' &&
+          typeof (item as Record<string, unknown>).goal === 'string' &&
+          typeof (item as Record<string, unknown>).duration === 'number' &&
+          VALID_PHASES.has((item as Record<string, unknown>).phase as string)
+      )
     ) {
       return parsed as SessionPlan
     }

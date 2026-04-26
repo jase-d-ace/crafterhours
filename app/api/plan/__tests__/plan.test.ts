@@ -52,9 +52,9 @@ const VALID_PLAN = {
   duration: 60,
   intention: 'Work on blues improv',
   structure: [
-    { title: 'Warmup', description: 'Scales', durationMinutes: 10, type: 'warmup' as const },
-    { title: 'Main', description: 'Improv', durationMinutes: 40, type: 'main' as const },
-    { title: 'Cooldown', description: 'Reflect', durationMinutes: 10, type: 'cooldown' as const },
+    { goal: 'Warmup scales', duration: 10, phase: 'warmup' as const },
+    { goal: 'Blues improv', duration: 40, phase: 'main' as const },
+    { goal: 'Reflect', duration: 10, phase: 'cooldown' as const },
   ],
 }
 

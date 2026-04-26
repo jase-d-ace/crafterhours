@@ -2,16 +2,15 @@ import { NextResponse } from 'next/server'
 import { getSession, updateSessionPlan } from '@/lib/db'
 import type { SessionPlan, PlanItem } from '@/lib/types'
 
-const VALID_PLAN_ITEM_TYPES = ['warmup', 'main', 'cooldown', 'reflection']
+const VALID_PLAN_ITEM_PHASES = ['warmup', 'main', 'cooldown', 'reflection']
 
 function isValidPlanItem(item: unknown): item is PlanItem {
   if (typeof item !== 'object' || item === null) return false
   const obj = item as Record<string, unknown>
   return (
-    typeof obj.title === 'string' &&
-    typeof obj.description === 'string' &&
-    typeof obj.durationMinutes === 'number' && obj.durationMinutes > 0 &&
-    typeof obj.type === 'string' && VALID_PLAN_ITEM_TYPES.includes(obj.type)
+    typeof obj.goal === 'string' &&
+    typeof obj.duration === 'number' && obj.duration > 0 &&
+    typeof obj.phase === 'string' && VALID_PLAN_ITEM_PHASES.includes(obj.phase)
   )
 }
 
