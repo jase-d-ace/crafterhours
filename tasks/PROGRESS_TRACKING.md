@@ -168,3 +168,104 @@ Transitions:
 - [ ] Click "Save" → `artifacts` table has a new row with correct `session_id` FK
 - [ ] `GET /api/session` returns the completed session
 - [ ] `npm run typecheck` and `npm run lint` pass clean
+
+---
+
+## Phase B implementation — History page
+
+### Goal
+Turn the empty `/history` stub into a usable view of past sessions and their
+artifacts. Read-only — no edits to existing sessions or artifacts. Nav link
+already exists in `components/AppHeader.tsx`; the page is just a placeholder.
+
+### 1. `lib/types.ts` — add new type
+
+```typescript
+export type SessionDetail = Session & {
+  hobby: Hobby
+  artifact: Artifact | null
+}
+```
+
+A session can exist without an artifact (user skipped save), so artifact is
+nullable.
+
+### 2. `lib/db.ts` — add 2 functions
+
+**`getSessionDetails(limit = 50): SessionDetail[]`**
+```sql
+SELECT
+  s.*,
+  h.id as hobby_id, h.name as hobby_name, h.emoji, h.goal,
+  h.focus_areas, h.active, h.created_at as hobby_created_at,
+  a.id as artifact_id, a.type as artifact_type_full,
+  a.content as artifact_content, a.created_at as artifact_created_at
+FROM sessions s
+JOIN hobbies h ON s.hobby_id = h.id
+LEFT JOIN artifacts a ON a.session_id = s.id
+ORDER BY s.created_at DESC
+LIMIT ?
+```
+
+Maps each row to `SessionDetail`. Aliases are needed because `id`, `created_at`,
+and `type` collide across the three joined tables.
+
+**`getArtifactBySessionId(sessionId: string): Artifact | null`**
+```sql
+SELECT * FROM artifacts WHERE session_id = ? LIMIT 1
+```
+
+Small helper, useful if a future detail view needs to refetch a single artifact.
+
+Keep `getRecentSessions` unchanged — Phase C needs it to stay raw (no joins).
+
+### 3. API route
+
+**`app/api/history/route.ts`** (new)
+
+```typescript
+GET /api/history → { sessions: SessionDetail[] }
+```
+
+Calls `getSessionDetails(50)`. No pagination — single-user local app at this scale.
+
+Don't enrich the existing `GET /api/session`; keeping endpoints separate avoids
+overfetching for the recommender (Phase C) which only needs raw rows.
+
+### 4. Page — `app/history/page.tsx`
+
+Replace the stub. Client component, fetches `/api/history` on mount.
+
+Layout matches `app/page.tsx` (centered max-w-640 from `app/layout.tsx`,
+craft-gray-900 cards).
+
+Per-session card, descending by `createdAt`:
+- Hobby emoji + name
+- Date — relative for recent (`Today`, `Yesterday`, `3 days ago`), absolute
+  beyond a week
+- Duration ("47 min")
+- One-line truncated note
+- Click → expands inline to show full notes + artifact markdown content
+  (collapsible, not a separate route)
+
+Empty state: "No sessions yet — finish your first one and it'll show up here."
+
+Render inline in the page rather than extracting a new component yet — it's a
+single use site and the shape may evolve.
+
+---
+
+## Phase B critical files
+- `lib/types.ts` — add `SessionDetail`
+- `lib/db.ts` — add `getSessionDetails`, `getArtifactBySessionId`
+- `app/api/history/route.ts` — new GET endpoint
+- `app/history/page.tsx` — replace stub with real list view
+
+## Phase B verification
+- [ ] Visit `/history` with empty DB → empty state copy renders
+- [ ] Complete a full session via `/` → revisit `/history` → row appears at top
+      with correct hobby, duration, and note preview
+- [ ] Click row → expands to show full notes + artifact markdown
+- [ ] Save artifact for one session, skip for another → first shows artifact
+      block, second shows "No artifact saved" inline
+- [ ] `npm run typecheck` and `npm run lint` pass clean
