@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3'
 import path from 'path'
-import type { Hobby, Artifact, Message, SessionPlan, SessionState, Session, SaveSessionInput, SaveArtifactInput } from './types'
+import type { Hobby, Artifact, Message, SessionPlan, SessionState, Session, SaveSessionInput, SaveArtifactInput, SessionDetail } from './types'
 
 const DATABASE_PATH = process.env.DATABASE_PATH || path.join(process.cwd(), 'crafterhours.db')
 const db = new Database(DATABASE_PATH)
@@ -69,6 +69,64 @@ export function saveArtifact(data: SaveArtifactInput): Artifact {
   return { id, ...data, createdAt: now }
 }
 
+export function getArtifactBySessionId(sessionId: string): Artifact | null {
+  const row = db.prepare('SELECT * FROM artifacts WHERE session_id = ? LIMIT 1').get(sessionId) as any
+  if (!row) return null
+  return {
+    id: row.id,
+    sessionId: row.session_id,
+    hobbyId: row.hobby_id,
+    type: row.type as Artifact['type'],
+    content: row.content,
+    createdAt: row.created_at,
+  }
+}
+
+export function getSessionDetails(limit = 50): SessionDetail[] {
+  const rows = db.prepare(
+    `SELECT
+       s.id, s.hobby_id, s.duration, s.notes, s.artifact_type, s.created_at,
+       h.name as hobby_name, h.emoji as hobby_emoji, h.goal as hobby_goal,
+       h.focus_areas as hobby_focus_areas, h.active as hobby_active,
+       h.created_at as hobby_created_at,
+       a.id as artifact_id, a.type as artifact_type_full,
+       a.content as artifact_content, a.created_at as artifact_created_at
+     FROM sessions s
+     JOIN hobbies h ON s.hobby_id = h.id
+     LEFT JOIN artifacts a ON a.session_id = s.id
+     ORDER BY s.created_at DESC
+     LIMIT ?`
+  ).all(limit) as any[]
+
+  return rows.map((row) => ({
+    id: row.id,
+    hobbyId: row.hobby_id,
+    duration: row.duration,
+    notes: row.notes,
+    artifactType: row.artifact_type as Artifact['type'],
+    createdAt: row.created_at,
+    hobby: {
+      id: row.hobby_id,
+      name: row.hobby_name,
+      emoji: row.hobby_emoji,
+      goal: row.hobby_goal,
+      focusAreas: JSON.parse(row.hobby_focus_areas),
+      active: Boolean(row.hobby_active),
+      createdAt: row.hobby_created_at,
+    },
+    artifact: row.artifact_id
+      ? {
+          id: row.artifact_id,
+          sessionId: row.id,
+          hobbyId: row.hobby_id,
+          type: row.artifact_type_full as Artifact['type'],
+          content: row.artifact_content,
+          createdAt: row.artifact_created_at,
+        }
+      : null,
+  }))
+}
+
 // --- session_state CRUD ---
 
 function rowToSessionState(row: any): SessionState {
@@ -123,5 +181,5 @@ export function abandonActiveSessions(): void {
   ).run()
 }
 
-export { type Hobby, type Artifact, type Session, type SaveSessionInput, type SaveArtifactInput } from './types'
+export { type Hobby, type Artifact, type Session, type SaveSessionInput, type SaveArtifactInput, type SessionDetail } from './types'
 export { type Recommendation, type SessionPlan, type PlanItem, type SessionState } from './types'

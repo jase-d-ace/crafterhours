@@ -57,6 +57,11 @@ export type Session = {
 export type SaveSessionInput = Omit<Session, 'id' | 'createdAt'>
 export type SaveArtifactInput = Omit<Artifact, 'id' | 'createdAt'>
 
+export type SessionDetail = Session & {
+  hobby: Hobby
+  artifact: Artifact | null
+}
+
 export type SessionPhase =
   | 'idle'
   | 'recommending'
