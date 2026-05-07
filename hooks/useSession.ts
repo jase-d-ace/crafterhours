@@ -70,9 +70,13 @@ export function useSession() {
       .then((res) => res.json())
       .then((data) => {
         if (cancelled) return
-        setRecommendation(data.recommendation)
         setAllHobbies(data.allHobbies)
-        setPhase('recommended')
+        if (data.recommendation) {
+          setRecommendation(data.recommendation)
+          setPhase('recommended')
+        } else {
+          setPhase('redirecting')
+        }
       })
       .catch(() => {})
 
@@ -245,7 +249,7 @@ export function useSession() {
 
   const alternatives = recommendation
     ? allHobbies.filter((h) => h.id !== recommendation.hobby.id)
-    : []
+    : allHobbies
 
   return {
     phase,

@@ -71,6 +71,7 @@ export default function HomePage() {
       {phase === 'recommended' && recommendation && (
         <RecommendationCard
           recommendation={recommendation}
+          canRedirect={alternatives.length > 0}
           onConfirm={confirmHobby}
           onRedirect={redirectHobby}
         />
