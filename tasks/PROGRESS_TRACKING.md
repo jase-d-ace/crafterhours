@@ -269,3 +269,134 @@ single use site and the shape may evolve.
 - [ ] Save artifact for one session, skip for another → first shows artifact
       block, second shows "No artifact saved" inline
 - [ ] `npm run typecheck` and `npm run lint` pass clean
+
+---
+
+## Phase C implementation — Live recommender
+
+### Goal
+Replace the mocked recommendation in `app/api/recommend/route.ts` with one
+driven by real session history plus a small Claude call for personalized
+reasoning. Empty DB → recommender returns null → client falls through to a
+hobby picker (reusing the existing redirect flow). Calendar and GitHub context
+are deferred to a separate phase.
+
+### Decisions baked in
+- **Reasoning:** Claude-generated, non-streaming, ~120 tokens. Templates lose the
+  "remembered context" feel that makes the recommender worth having.
+- **Reasoning input:** Gap (hours if <24h, else days) + last session's notes.
+  Artifacts excluded — too long, mostly redundant with notes.
+- **Empty DB:** `{ recommendation: null, allHobbies }` → client routes through
+  existing `redirecting` phase ("What are you feeling tonight?"). No new UI.
+- **Single-hobby case:** Hide the "Actually, I'd rather..." button on
+  `RecommendationCard` via a `canRedirect: boolean` prop.
+- **All-touched-today:** Resolved by Claude-generated reasoning (phrases hours
+  naturally).
+
+### 1. `lib/claude.ts` — add reasoning generator
+
+New non-streaming function (mirror `getOpeningMessage` shape) and new system
+prompt. Existing prompts untouched per CLAUDE.md.
+
+```typescript
+export async function generateRecommendationReasoning(
+  hobby: Hobby,
+  lastSession: Session | null,
+): Promise<string>
+```
+
+User message: hobby details + gap (hours or days) + last session's notes.
+Returns 1–2 sentence string from `response.content[0].text`.
+
+### 2. `lib/recommender.ts` — implement `buildRecommendation`
+
+Replace the `NotImplementedError` stub:
+
+```typescript
+export async function buildRecommendation(): Promise<{
+  recommendation: Recommendation | null
+  allHobbies: Hobby[]
+}>
+```
+
+Algorithm:
+1. `getHobbies()` and `getRecentSessions(50)`
+2. If no sessions → return `{ recommendation: null, allHobbies }`
+3. Build `Map<hobbyId, Session>` of most recent session per hobby (sessions are
+   already DESC, so first-seen wins)
+4. Sort hobbies ascending by last-session time; never-touched first (`-Infinity`)
+5. `primary = sorted[0]`, `alternative = sorted[1]` (may be undefined)
+6. Call `generateRecommendationReasoning(primary, lastSession)` for reasoning
+7. Return `{ recommendation: { hobby: primary, reasoning, confidence: 0.7,
+   alternativeHobby: alternative, lastSession: lastSession?.createdAt }, allHobbies }`
+
+### 3. `app/api/recommend/route.ts` — swap mock for real
+
+```typescript
+import { buildRecommendation } from '@/lib/recommender'
+
+export async function GET() {
+  const data = await buildRecommendation()
+  return NextResponse.json(data)
+}
+```
+
+Mock at `lib/mocks/recommend.ts` no longer imported.
+
+### 4. `hooks/useSession.ts` — null-recommendation routing
+
+In the mount `useEffect`:
+
+```typescript
+setAllHobbies(data.allHobbies)
+if (data.recommendation) {
+  setRecommendation(data.recommendation)
+  setPhase('recommended')
+} else {
+  setPhase('redirecting')  // empty DB → picker
+}
+```
+
+Update `alternatives`:
+
+```typescript
+const alternatives = recommendation
+  ? allHobbies.filter((h) => h.id !== recommendation.hobby.id)
+  : allHobbies
+```
+
+### 5. `components/RecommendationCard/RecommendationCard.tsx`
+
+Add `canRedirect: boolean` prop. Wrap the redirect button in `{canRedirect && (...)}`.
+
+### 6. `app/page.tsx`
+
+Pass `canRedirect={alternatives.length > 0}` to `RecommendationCard`.
+
+---
+
+## Phase C critical files
+- `lib/claude.ts` — add `generateRecommendationReasoning` + prompt
+- `lib/recommender.ts` — implement `buildRecommendation`
+- `app/api/recommend/route.ts` — swap mock for real
+- `hooks/useSession.ts` — null-recommendation routing + alternatives fallback
+- `components/RecommendationCard/RecommendationCard.tsx` — `canRedirect` prop
+- `app/page.tsx` — pass `canRedirect`
+
+## Phase C verification
+- [ ] Empty DB: load `/` → goes directly to hobby picker, no recommendation flash
+- [ ] Pick from picker → enters planning phase normally
+- [ ] Complete one guitar session, reload `/` → does NOT pick guitar; reasoning
+      references the gap and is non-generic
+- [ ] Complete sessions for all three hobbies → picks the oldest; alternative is
+      second-oldest; reasoning references last notes
+- [ ] Reload immediately after a session → reasoning phrases gap in hours, not
+      "0 days ago"
+- [ ] Single-hobby case (deactivate two hobbies in DB): redirect button is hidden
+- [ ] `npm run typecheck` and `npm run lint` pass clean
+
+## Out of scope (deferred to a separate phase)
+- Calendar context (`calendarContext`) — needs `lib/calendar.ts` MCP wrapper
+- GitHub context (`githubContext`) — needs `lib/github.ts` MCP wrapper
+- Rich confidence calculation — fixed at 0.7 for now
+- Hobby management UI — `/settings` is "coming soon", not a recommender concern
