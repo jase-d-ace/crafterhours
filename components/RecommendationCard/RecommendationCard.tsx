@@ -4,12 +4,14 @@ import type { Recommendation } from '@/lib/types'
 
 type RecommendationCardProps = {
   recommendation: Recommendation
+  canRedirect: boolean
   onConfirm: () => void
   onRedirect: () => void
 }
 
 export default function RecommendationCard({
   recommendation,
+  canRedirect,
   onConfirm,
   onRedirect,
 }: RecommendationCardProps) {
@@ -64,12 +66,14 @@ export default function RecommendationCard({
         >
           Let&apos;s go
         </button>
-        <button
-          onClick={onRedirect}
-          className="rounded-lg px-4 py-2.5 text-sm font-medium text-craft-gray-400 hover:text-craft-gray-200 hover:bg-craft-gray-800 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-craft-pink-400 focus:ring-offset-2 focus:ring-offset-craft-gray-900"
-        >
-          Actually, I&apos;d rather&hellip;
-        </button>
+        {canRedirect && (
+          <button
+            onClick={onRedirect}
+            className="rounded-lg px-4 py-2.5 text-sm font-medium text-craft-gray-400 hover:text-craft-gray-200 hover:bg-craft-gray-800 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-craft-pink-400 focus:ring-offset-2 focus:ring-offset-craft-gray-900"
+          >
+            Actually, I&apos;d rather&hellip;
+          </button>
+        )}
       </div>
     </div>
   )

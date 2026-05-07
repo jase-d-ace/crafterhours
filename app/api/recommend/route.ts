@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { getMockRecommendation } from '@/lib/mocks/recommend'
+import { buildRecommendation } from '@/lib/recommender'
 
 export async function GET() {
-  const data = getMockRecommendation()
+  const data = await buildRecommendation()
   return NextResponse.json(data)
 }
